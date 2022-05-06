@@ -1,0 +1,106 @@
+---
+title: "code-1"
+author: "Romeo Penheiro"
+date: "06/05/2022"
+output: html_document
+---
+
+```{r packages, include=FALSE}
+if (!requireNamespace('xfun')) install.packages('xfun')
+xf <- loadNamespace('xfun')
+
+cran_packages <- c(
+        "ggplot2", # To create graphs
+        "dplyr", # To wrangle data
+        "import", # To import data
+        "here", # To generate relative paths
+        "readr" # To read data
+
+)
+
+if (length(cran_packages) != 0) xf$pkg_load2(cran_packages)
+
+# gh_repos <- c(
+# 
+#         
+# )
+# if (length(gh_repos) != 0) xf$install_github(gh_repos)
+
+import::from(magrittr, '%>%')
+```
+
+# Import the data
+
+```{r}
+# Go to the data folder and retrieve the data
+doctor <- readr::read_csv(file = (here::here("data", 
+                                             "doctor-characteristic-data"))) 
+sofa <- readr::read_csv(file = (here::here("data", 
+                                           "patient-SOFA-trajectory-data")))
+
+patient <- readr::read_csv(file = (here::here("data",
+                                              "patient-characteristic-data-at-ICU-admission")))
+
+doctor_360 <- readr::read_csv(file = (here::here("data",
+                                                 "physician-360-degree-evaluation-data")))
+
+```
+
+
+
+
+
+```{r}
+ggplot2::ggplot(patient, ggplot2::aes(x = DocID, fill = P8)) +
+        ggplot2::geom_bar(position="fill") +
+        ggplot2::scale_y_continuous(labels = scales::percent) +
+        ggplot2::geom_hline(yintercept = 0.5)
+```
+
+```{r}
+training <- dplyr::left_join(x = patient,
+                 y = doctor[, c(1, 8)],
+                 by = "DocID") 
+# Training of the doctor affects mortality of patients?
+ggplot2::ggplot(training, ggplot2::aes(x = M7, fill = P8)) +
+        ggplot2::geom_bar(position="fill") +
+        ggplot2::scale_y_continuous(labels = scales::percent) +
+        ggplot2::geom_hline(yintercept = 0.5)
+```
+
+
+```{r}
+# Primary diagnosis at intake affects mortality of patients?
+ggplot2::ggplot(training, ggplot2::aes(x = P10, fill = P8)) +
+        ggplot2::geom_bar(position="fill") +
+        ggplot2::scale_y_continuous(labels = scales::percent) +
+        ggplot2::geom_hline(yintercept = 0.5)
+# Higher mortality in gastrointestinal and respiratory
+```
+
+```{r}
+# Look at the descriptive of patient demographics by primary diagnosis
+training %>%
+        dplyr::group_by(P10) %>%
+        dplyr::summarise(mean_Charlson_comorbidity = mean(P4),
+                         median_Charlson_comorbidity = median(P4),
+                         sd_Charlson_comorbidity = sd(P4),
+                         mean_APACHE = mean(P5),
+                         median_APACHE = median(P5),
+                         sd_APACHE = sd(P5),
+                         mean_SOFA = mean(P6),
+                         median_SOFA = median(P6),
+                         sd_SOFA = sd(P6)) %>%
+        dplyr::ungroup()
+# No significant difference in descriptive of patient demographics by primary diagnosis; especially in gastrointestinal and respiratory
+# Next investigate P1, P2, P3
+```
+
+
+# Challenge: Develop valid quality indicators to evaluate the performance of critical care physicians
+
+1. Does earlier appropriate medically expert diagnoses result in earlier expert interventions (such as resuscitation, and antibiotic treatment, which are known to decrease patient mortality rates)?
+2. Does a physician who is an expert team leader/communicator/collaborator has the best outcomes?
+3. Examine the variability between ICU physicians on the outcomes of their critically ill patients. Does some physicians have more critically ill patients than others?
+4. Does the physician 360 evaluations explain any observed differences in patient outcomes?
+5. Do physicians that work in a particular ICU have better outcome? 
